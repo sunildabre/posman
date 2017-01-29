@@ -15,6 +15,7 @@ import org.joda.time.Period;
 import com.gsd.pos.dao.SiteDao;
 import com.gsd.pos.dao.impl.SitesDaoImpl;
 import com.gsd.pos.model.CarwashSales;
+import com.gsd.pos.model.Discount;
 import com.gsd.pos.model.FuelInventory;
 import com.gsd.pos.model.FuelSales;
 import com.gsd.pos.model.Payment;
@@ -70,6 +71,7 @@ public class SitesView extends CustomComponent implements View {
 	private Table fuelInventoryTable;
 	private Table carwashTable;
 	private Table paymentsTable;
+	private Table discountTable;
 	private TextField searchField = new TextField();
 	private Panel siteInfoPanel;
 	private Panel shiftInfoPanel;
@@ -86,6 +88,7 @@ public class SitesView extends CustomComponent implements View {
 	private static final String TANK_ID = "Tank Number";
 	private static final String SALES = "Sales";
 	private static final String VOLUME = "Volume";
+	private static final String COUNT = "count";
 	private static final String PERCENT_OF_TOTAL_SALES = "% Of Total Fuel Sales";
 	private static final String[] fieldNames = new String[] { NAME };
 	private static final String[] allFuelTableColumns = new String[] { GRADE,
@@ -109,12 +112,15 @@ public class SitesView extends CustomComponent implements View {
 	private static final String AMOUNT = "Sales";
 	private static final String[] allPaymentTableColumns = new String[] {
 			METHOD_OF_PAYMENT, AMOUNT };
+	private static final String[] allDiscountTableColumns = new String[] {
+		GRADE_NAME, COUNT, AMOUNT };
 	private IndexedContainer sitesContainer = null;
 	private SiteDao sitesDao ;
 	private Long selectedSiteId;
 	private DateTime selectedDate;
 	private ShiftReport selectedShift = null;
 	private Site selectedSite = null;
+	private String FOOTER = "@Copyright 2017 GSD Tech, Version 3.0";
 	private static final Logger logger = Logger.getLogger(SitesView.class.getName());
 
 	/*
@@ -157,7 +163,7 @@ public class SitesView extends CustomComponent implements View {
 		 */
 		VerticalLayout l = new VerticalLayout();
 		l.addComponent(getReportChooserPanel());
-		l.addComponent(getReportPanel());
+		l.addComponent(getRightPanel());
 		splitPanel.addComponent(l);
 		mainPanel.setHeight("100%");
 		mainLayout.addComponent(mainPanel);
@@ -170,6 +176,7 @@ public class SitesView extends CustomComponent implements View {
 		fuelInventoryTable.setVisible(false);
 		paymentsTable.setVisible(false);
 		carwashTable.setVisible(false);
+		discountTable.setVisible(false);
 	}
 
 	private Layout getLeftLayout() {
@@ -337,25 +344,26 @@ public class SitesView extends CustomComponent implements View {
 		clearFuelInventoryTable();
 		clearPaymentsTable();
 		clearCarwashTable();
+		clearDiscountTable();
 		selectedShift = null;
 		populateSiteInfo();
 		populateShiftInfo();
 	}
 
-	private Panel getReportPanel() {
+	private Panel getRightPanel() {
 		Panel p = new Panel();
 		p.setSizeFull();
 		// p.addStyleName(Runo.PANEL_LIGHT);
-		final VerticalLayout l = new VerticalLayout();
-		p.setContent(l);
-		l.setSpacing(true);
-		l.setMargin(true);
+		final VerticalLayout mainlayout = new VerticalLayout();
+		p.setContent(mainlayout);
+		mainlayout.setSpacing(true);
+		mainlayout.setMargin(true);
 		// totalPanel = new Panel();
 		// totalPanel.setSizeFull();
 		// totalPanel.setVisible(false);
 		// rightLayout.addComponent(totalPanel);
 		shiftInfoPanel = getShiftInfoPanel();
-		l.addComponent(shiftInfoPanel);
+		mainlayout.addComponent(shiftInfoPanel);
 		shiftInfoPanel.setSizeFull();
 		fuelSalesTable = new Table() {
 			@Override
@@ -387,11 +395,14 @@ public class SitesView extends CustomComponent implements View {
 			}
 		};
 		fuelSalesTable.setCellStyleGenerator(cellStyleGenerator);
-		l.addComponent(fuelSalesTable);
+		mainlayout.addComponent(fuelSalesTable);
 		fuelSalesTable.setSizeFull();
 		fuelSalesTable.setSortEnabled(false);
 		fuelSalesTable.setColumnReorderingAllowed(false);
 		fuelSalesTable.setColumnCollapsingAllowed(false);
+		HorizontalLayout secondRow = new HorizontalLayout();
+		VerticalLayout paymentsLayout = new VerticalLayout();
+
 		IndexedContainer paymentDS = createPaymentContainer();
 		paymentsTable = new Table() {
 			@Override
@@ -419,28 +430,56 @@ public class SitesView extends CustomComponent implements View {
 		// paymentsTable.addStyleName(Runo.TABLE_BORDERLESS);
 		paymentsTable.setContainerDataSource(paymentDS);
 		paymentsTable.setWidth("95%");
+		paymentsTable.setSizeFull();
 		paymentsTable.setSortEnabled(false);
 		paymentsTable.setColumnReorderingAllowed(false);
-		l.setMargin(true);
-		HorizontalLayout h = new HorizontalLayout();
+		paymentsLayout.addComponent(paymentsTable);
+		paymentsLayout.setComponentAlignment(paymentsTable, Alignment.TOP_LEFT);
+		paymentsLayout.setSizeFull();
 		
-		
+		secondRow.addComponent(paymentsLayout);
+		secondRow.setComponentAlignment(paymentsLayout, Alignment.TOP_LEFT);
+		secondRow.setExpandRatio(paymentsLayout, 1.0f);
+
+		VerticalLayout gradeLayout = new VerticalLayout();
+		gradeLayout.setSpacing(true);
+//		gradeLayout.setMargin(true);
+		gradeLayout.setWidth("95%");
 		IndexedContainer fuelInventoryDS = this.createFuelInventoryContainer();
 		this.fuelInventoryTable = new Table();
 //		fuelInventoryTable.setCellStyleGenerator(cellStyleGenerator);
 		fuelInventoryTable.setCaption("Fuel Inventory");
 		fuelInventoryTable.setContainerDataSource(fuelInventoryDS);
-		fuelInventoryTable.setWidth("95%");
+		fuelInventoryTable.setWidth("100%");
 		fuelInventoryTable.setSortEnabled(false);
 		fuelInventoryTable.setColumnReorderingAllowed(false);
-		l.setMargin(true);
 		
-		h.addComponent(paymentsTable);
 
-		h.addComponent(fuelInventoryTable);
-		h.setComponentAlignment(fuelInventoryTable, Alignment.TOP_RIGHT);
-		h.setWidth("100%");
-		l.addComponent(h);
+		gradeLayout.addComponent(fuelInventoryTable);
+		gradeLayout.setComponentAlignment(fuelInventoryTable, Alignment.TOP_RIGHT);
+
+		IndexedContainer discountsDS = this.createDiscountsContainer();
+		this.discountTable = new Table();
+//		discountTable.setCellStyleGenerator(cellStyleGenerator);
+		discountTable.setCaption("Discounts");
+		discountTable.setContainerDataSource(discountsDS);
+		discountTable.setWidth("100%");
+		discountTable.setSortEnabled(false);
+		discountTable.setColumnReorderingAllowed(false);
+		
+		gradeLayout.addComponent(discountTable);
+		gradeLayout.setComponentAlignment(discountTable, Alignment.BOTTOM_RIGHT);
+		gradeLayout.setSizeFull();
+		secondRow.setSpacing(true);
+//		secondRow.setMargin(true);
+
+		secondRow.addComponent(gradeLayout);
+		secondRow.setExpandRatio(gradeLayout, 1.0f);
+		secondRow.setComponentAlignment(gradeLayout, Alignment.TOP_RIGHT);
+		
+		
+		secondRow.setWidth("100%");
+		mainlayout.addComponent(secondRow);
 
 		carwashTable = new Table() {
 			@Override
@@ -462,13 +501,22 @@ public class SitesView extends CustomComponent implements View {
 		// fuelSalesTable.addStyleName(Runo.TABLE_BORDERLESS);
 		IndexedContainer carwashDS = createCarwashContainer();
 		carwashTable.setContainerDataSource(carwashDS);
-		l.addComponent(carwashTable);
+		mainlayout.addComponent(carwashTable);
 		carwashTable.setSizeFull();
 		carwashTable.setSortEnabled(false);
 		carwashTable.setColumnReorderingAllowed(false);
 
 		
 		return p;
+	}
+
+	private IndexedContainer createDiscountsContainer() {
+		logger.debug("Created Discount container");
+		IndexedContainer ic = new IndexedContainer();
+		for (String p : allDiscountTableColumns) {
+			ic.addContainerProperty(p, String.class, null);
+		}
+		return ic;
 	}
 
 	private Panel getShiftInfoPanel() {
@@ -717,7 +765,7 @@ public class SitesView extends CustomComponent implements View {
 		lb.setSizeFull();
 		l.addComponent(lb);
 		l.setComponentAlignment(lb, Alignment.BOTTOM_LEFT);
-		lb = new Label("@Copyright 2015 GSD Tech, Version 2.1");
+		lb = new Label(FOOTER );
 		lb.addStyleName("bold");
 		lb.setSizeFull();
 		l.addComponent(lb);
@@ -727,6 +775,7 @@ public class SitesView extends CustomComponent implements View {
 	}
 
 	private void populateTables(ShiftReport s) {
+		logger.debug("Populating information for shift " + s.getShiftId());
 		populateFuelSalesTable(s);
 		fuelSalesTable.setVisibleColumns(allFuelTableColumns);
 		fuelSalesTable.setPageLength(fuelSalesTable.size() + 1);
@@ -743,7 +792,7 @@ public class SitesView extends CustomComponent implements View {
 			logger.debug("No carwash sales found");
 			carwashTable.setVisible(false);
 		}
-//		logger.debug("Fule Inventory is Enabled [" + selectedSite.isFuelInventoryEnabled() + "]");
+//		logger.debug("Fuel Inventory is Enabled [" + selectedSite.isFuelInventoryEnabled() + "]");
 
 		if ( (s.getFuelInventory() != null) && (!s.getFuelInventory().isEmpty())) {
 			fuelInventoryTable.setVisible(true);
@@ -751,15 +800,21 @@ public class SitesView extends CustomComponent implements View {
 			fuelInventoryTable.setVisibleColumns(allFuelInventoryTableColumns);
 			fuelInventoryTable.setPageLength(fuelInventoryTable.size() + 1);
 			fuelInventoryTable.setImmediate(true);
-			//Set payments table width
-			paymentsTable.setWidth("100%");
 		} else {
 			logger.debug("No fuel inventory  found");
 			fuelInventoryTable.setVisible(false);
-			//Set payments table width
-			paymentsTable.setWidth("50%");
 		}
-
+		if ((s.getDiscounts() != null) && (!s.getDiscounts().isEmpty())) {
+			discountTable.setVisible(true);
+			populateDiscountTable(s);
+			discountTable.setVisibleColumns(allDiscountTableColumns);
+			discountTable.setPageLength(discountTable.size() + 1);
+			discountTable.setImmediate(true);
+		} else {
+			logger.debug("No Discounts found");
+			discountTable.setVisible(false);
+		}
+		paymentsTable.setWidth("100%");
 		populatePaymentsTable(s);
 		paymentsTable.setVisibleColumns(allPaymentTableColumns);
 		paymentsTable.setPageLength(paymentsTable.size() + 1);
@@ -908,11 +963,30 @@ public class SitesView extends CustomComponent implements View {
 		carwashTable.setVisible(true);
 	}
 
+	private void clearDiscountTable() {
+		this.discountTable.removeAllItems();
+		discountTable.setVisible(false);
+	}
+
+	private void populateDiscountTable(ShiftReport report) {
+		this.discountTable.removeAllItems();
+		List<Discount> sales = report.getDiscounts();
+		for (Discount s : sales) {
+			Object id = discountTable.addItem();
+			discountTable.getContainerProperty(id, GRADE_NAME).setValue(s.getGrade());
+			discountTable.getContainerProperty(id, COUNT).setValue(
+					s.getCount() + "");
+
+			discountTable.getContainerProperty(id, AMOUNT).setValue(asMoney(s.getAmount(), 2));
+
+		}
+		discountTable.setVisible(true);
+	}
+
 	private void clearCarwashTable() {
 		this.carwashTable.removeAllItems();
 		carwashTable.setVisible(false);
 	}
-
 	
 	
 	
@@ -986,6 +1060,14 @@ public class SitesView extends CustomComponent implements View {
 			User u = (User) getSession().getAttribute("user");
 			if ( u != null) {
 				sites = sitesDao.getActiveSites(u);
+/*
+				Collections.sort(sites, new Comparator<Site>() {
+
+					@Override
+					public int compare(Site o1, Site o2) {
+						return o1.getName().compareTo(o2.getName());
+					}});
+*/
 			}
 			for (Site s : sites) {
 				Object id = sitesContainer.addItem();

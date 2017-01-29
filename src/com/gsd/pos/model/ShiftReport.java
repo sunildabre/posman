@@ -14,6 +14,7 @@ public class ShiftReport {
 	private Long operatorId;
 	private List<FuelSales> fuelSales;
 	private List<FuelInventory> fuelInventory;
+	private List<Discount> discounts;
 
 	private List<CarwashSales> carwashSales;
 	private List<Payment> payments;
@@ -182,5 +183,13 @@ public class ShiftReport {
 
 	public void setFuelInventory(List<FuelInventory> fuelInventory) {
 		this.fuelInventory = fuelInventory;
+	}
+
+	public List<Discount> getDiscounts() {
+		return discounts;
+	}
+
+	public void setDiscounts(List<Discount> discounts) {
+		this.discounts = discounts;
 	}
 }

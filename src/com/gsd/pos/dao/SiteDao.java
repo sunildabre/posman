@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 
 import com.gsd.pos.model.CarwashSales;
+import com.gsd.pos.model.Discount;
 import com.gsd.pos.model.FuelInventory;
 import com.gsd.pos.model.FuelSales;
 import com.gsd.pos.model.Payment;
@@ -40,4 +41,7 @@ public interface SiteDao {
 	List<Site> getActiveSites(User user);
 
 	List<FuelInventory> getFuelInventory(Long shiftId);
+
+	List<Discount> getDiscounts(Long shiftId);
+
 }

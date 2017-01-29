@@ -12,6 +12,7 @@ import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 
 import com.gsd.pos.model.CarwashSales;
+import com.gsd.pos.model.Discount;
 import com.gsd.pos.model.FuelInventory;
 import com.gsd.pos.model.FuelSales;
 import com.gsd.pos.model.Payment;
@@ -210,6 +211,32 @@ public class ShiftReportGenerator implements StreamSource {
 					insertCell(table, s.getGradeName(), Element.ALIGN_LEFT, 1,null);
 					insertCell(table, s.getTankId() + "", Element.ALIGN_LEFT, 1,null);
 					insertCell(table, asString(s.getVolume(), 3),
+							Element.ALIGN_RIGHT, 1, null);
+				}
+				doc.add(table);
+				doc.add(Chunk.NEWLINE);
+				doc.add(new LineSeparator());
+				doc.add(Chunk.NEWLINE);
+
+			}
+			if ((sr.getDiscounts() != null)
+					&& (!sr.getDiscounts().isEmpty())) {
+				title = new Paragraph("Discounts", font2);
+				title.setAlignment(Element.ALIGN_LEFT);
+				doc.add(title);
+				doc.add(Chunk.NEWLINE);
+				doc.add(Chunk.NEWLINE);
+				table = new PdfPTable(3);
+				table.setHeaderRows(1);
+				insertCell(table, "Grade Name", Element.ALIGN_LEFT, 1, font2);
+				insertCell(table, "Count", Element.ALIGN_LEFT, 1, font2);
+				insertCell(table, "Amount", Element.ALIGN_RIGHT, 1, font2);
+				table.setWidthPercentage(100);
+				List<Discount> discounts = sr.getDiscounts();
+				for (Discount s : discounts) {
+					insertCell(table, s.getGrade(), Element.ALIGN_LEFT, 1,null);
+					insertCell(table, s.getCount()+ "", Element.ALIGN_LEFT, 1,null);
+					insertCell(table, asMoney(s.getAmount(), 2),
 							Element.ALIGN_RIGHT, 1, null);
 				}
 				doc.add(table);

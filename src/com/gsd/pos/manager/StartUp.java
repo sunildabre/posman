@@ -37,7 +37,7 @@ public class StartUp implements ServletContextListener {
 		System.setProperty("javax.net.ssl.trustStore", certpath);
 		
 		logger.debug("Application started!!");
-		JobManager.getInstance().start();
+//		JobManager.getInstance().start();
 	}
 
 	

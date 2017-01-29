@@ -15,6 +15,7 @@ import org.joda.time.DateTime;
 
 import com.gsd.pos.dao.SiteDao;
 import com.gsd.pos.model.CarwashSales;
+import com.gsd.pos.model.Discount;
 import com.gsd.pos.model.FuelInventory;
 import com.gsd.pos.model.FuelSales;
 import com.gsd.pos.model.Payment;
@@ -181,6 +182,7 @@ public class SitesDaoImpl implements SiteDao, java.io.Serializable {
 			c.setPayments(payments);
 			c.setCarwashSales(this.getCarWashSales(c.getShiftId(), con));
 			c.setFuelInventory(this.getFuelInventory(c.getShiftId(), con));
+			c.setDiscounts(this.getDiscounts(c.getShiftId(), con));
 
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -320,6 +322,12 @@ public class SitesDaoImpl implements SiteDao, java.io.Serializable {
 					addFuelInventory(shiftId, f, con);
 				}
 			}
+			if (report.getDiscounts() != null && (!report.getDiscounts().isEmpty())) {
+				for (Discount f : report.getDiscounts()) {
+					addDiscount(shiftId, f, con);
+				}
+			}
+
 			updateSiteCollectedDate(report.getSiteId(), report.getEndTime(),
 					con);
 			if ((report.getStreet() != null) && (report.getCity() != null)
@@ -891,4 +899,81 @@ public class SitesDaoImpl implements SiteDao, java.io.Serializable {
 		}
 		return shiftId;
 	}
+
+	@Override
+	public List<Discount> getDiscounts(Long shiftId) {
+		List<Discount> sales = null;
+		Connection con = null;
+		try {
+			con = DBHandler.getInstance().getConnection();
+			sales = this.getDiscounts(shiftId, con);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			try {
+				if (con != null) {
+					con.close();
+				}
+			} catch (SQLException se) {
+			}
+		}
+		return sales;
+	}
+
+	private List<Discount> getDiscounts(Long shiftId, Connection con) throws SQLException {
+		List<Discount> sales = new ArrayList<Discount>();
+		PreparedStatement st = null;
+		try {
+			String sql = "select * from discount where shift_id = ? ";
+			logger.trace("Executing sql " + sql);
+			st = con.prepareStatement(sql);
+			st.setLong(1, shiftId);
+			ResultSet rs = st.executeQuery();
+			while (rs.next()) {
+				Discount c = createDiscount(rs);
+				sales.add(c);
+			}
+		} finally {
+			try {
+				if (st != null) {
+					st.close();
+				}
+			} catch (SQLException se) {
+			}
+		}
+		return sales;
+	}
+
+	private Discount createDiscount(ResultSet rs) throws SQLException {
+		Discount f = new Discount();
+		f.setGrade(rs.getString("grade"));
+		f.setCount(rs.getInt("count"));
+		f.setAmount(rs.getBigDecimal("amount"));
+		return f;
+	}
+	
+	private void addDiscount(Long shiftId, Discount d, Connection con) throws SQLException {
+		PreparedStatement st = null;
+		try {
+			String sql = "insert into discount (shift_id, grade,"
+					+ "count, amount) "
+					+ "values (?,?,?,?) ";
+			logger.trace("Executing sql " + sql);
+			st = con.prepareStatement(sql);
+			st.setLong(1, shiftId);
+			st.setString(2, d.getGrade());
+			st.setLong(3, d.getCount());
+			st.setBigDecimal(4, d.getAmount());
+			int inserted = st.executeUpdate();
+			logger.debug("Inserted");
+		} finally {
+			try {
+				if (st != null) {
+					st.close();
+				}
+			} catch (SQLException se) {
+			}
+		}
+	}
+
 }
